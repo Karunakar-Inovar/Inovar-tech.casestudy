@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NavApp Case Study | InovarTech — Real-Time Command of Seattle's Encampment Crisis</title>
+    <meta name="description"
+        content="How InovarTech built NavApp — a purpose-built mobile platform giving Seattle's operational teams real-time geo-fenced mapping, structured encampment workflows, and integrated analytics.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap&family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ===== RESET ===== */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --coral: #F27F52;
+            --coral-light: #FF9A76;
+            --coral-dark: #D96A3F;
+            --teal: #7580D2;
+            --teal-dark: #6068B8;
+            --deep-blue: #191654;
+            --navy: #1B1B3A;
+            --black: #111111;
+            --white: #FFFFFF;
+            --off-white: #F7F8FA;
+            --light-gray: #F0F2F5;
+            --border: #E8EBF0;
+            --text-primary: #1A1A2E;
+            --text-secondary: #555566;
+            --text-muted: #888899;
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 28px;
+            --radius-xl: 36px;
+            --radius-pill: 50px;
+            --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.06);
+            --shadow-card: 0 8px 40px rgba(0, 0, 0, 0.08);
+            --shadow-hover: 0 16px 56px rgba(0, 0, 0, 0.12);
+            --shadow-coral: 0 4px 20px rgba(242, 127, 82, 0.3);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            background: var(--white);
+            overflow-x: hidden;
+        }
+
+        /* ===== UTILITY ===== */
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .section-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--coral);
+            margin-bottom: 16px;
+        }
+
+        .section-label::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--coral);
+        }
+
+        .section-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.15;
+            margin-bottom: 12px;
+            letter-spacing: -0.02em;
+        }
+
+        .section-subtitle {
+            font-size: clamp(1rem, 2vw, 1.15rem);
+            color: var(--teal-dark);
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-delay-1 {
+            transition-delay: 0.1s;
+        }
+
+        .reveal-delay-2 {
+            transition-delay: 0.2s;
+        }
+
+        .reveal-delay-3 {
+            transition-delay: 0.3s;
+        }
+
+        .reveal-delay-4 {
+            transition-delay: 0.4s;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.05);
+            }
+        }
+
+        /* ===== NAVIGATION ===== */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 18px 0;
+            transition: all 0.4s ease;
+        }
+
+        .nav.scrolled {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 12px 0;
+            box-shadow: 0 2px 24px rgba(0, 0, 0, 0.08);
+        }
+
+
+
+        .nav.scrolled .nav-links a {
+            color: var(--text-secondary);
+        }
+
+        .nav.scrolled .nav-links a:hover {
+            color: var(--coral);
+        }
+
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-logo-img {
+            height: 32px;
+            width: auto;
+            filter: brightness(0) invert(1);
+            transition: filter 0.3s;
+        }
+
+        .nav.scrolled .nav-logo-img {
+            filter: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--white);
+        }
+
+        .nav-cta {
+            background: var(--coral) !important;
+            color: var(--white) !important;
+            padding: 10px 24px !important;
+            border-radius: var(--radius-pill) !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+            box-shadow: var(--shadow-coral);
+        }
+
+        .nav-cta:hover {
+            background: var(--coral-dark) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(242, 127, 82, 0.4) !important;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, #5B86C8 0%, #4AADB8 40%, #3ADDC8 100%);
+            overflow: hidden;
+        }
+
+        /* Dot grid */
+        .hero::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+
+        /* Floating decorative circles */
+        .hero-circle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-circle-1 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(242, 127, 82, 0.2) 0%, transparent 70%);
+            top: -150px;
+            right: -100px;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .hero-circle-2 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(117, 128, 210, 0.15) 0%, transparent 70%);
+            bottom: -100px;
+            left: -80px;
+            animation: float 10s ease-in-out infinite reverse;
+        }
+
+        .hero-circle-3 {
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(242, 127, 82, 0.12) 0%, transparent 70%);
+            top: 35%;
+            right: 20%;
+            animation: pulse-glow 6s ease-in-out infinite;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            padding: 130px 0 100px;
+            max-width: 680px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        .hero-badge-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--coral-light);
+        }
+
+        .hero-badge-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 7px 16px;
+            border-radius: var(--radius-pill);
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--white);
+        }
+
+        .hero-badge-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--teal);
+        }
+
+        .hero h1 {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: clamp(2.6rem, 6vw, 4.2rem);
+            font-weight: 800;
+            color: var(--white);
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 .accent {
+            color: var(--coral-light);
+        }
+
+        .hero-sub {
+            font-size: 1.15rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.65);
+            line-height: 1.6;
+            margin-bottom: 36px;
+        }
+
+        .hero-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .hero-tag {
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.55);
+            padding: 7px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-pill);
+            transition: all 0.3s ease;
+        }
+
+        .hero-tag:hover {
+            border-color: var(--coral);
+            color: var(--coral-light);
+            background: rgba(242, 127, 82, 0.1);
+        }
+
+        /* ===== STATS BAR ===== */
+        .stats-bar {
+            position: relative;
+            z-index: 10;
+            margin-top: -56px;
+            margin-bottom: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+
+        .stat-item {
+            padding: 40px 28px;
+            text-align: center;
+            position: relative;
+            transition: all 0.4s ease;
+        }
+
+        .stat-item:hover {
+            background: var(--off-white);
+        }
+
+        .stat-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 22%;
+            height: 56%;
+            width: 1px;
+            background: var(--border);
+        }
+
+        .stat-number {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 8px;
+        }
+
+        .stat-item:nth-child(1) .stat-number {
+            color: var(--deep-blue);
+        }
+
+        .stat-item:nth-child(2) .stat-number {
+            color: var(--coral);
+        }
+
+        .stat-item:nth-child(3) .stat-number {
+            color: var(--teal-dark);
+        }
+
+        .stat-item:nth-child(4) .stat-number {
+            color: var(--deep-blue);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .stat-meta {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* ===== EXECUTIVE SUMMARY ===== */
+        .exec-summary {
+            padding: 120px 0 100px;
+        }
+
+        .exec-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 48px;
+            align-items: start;
+        }
+
+        .exec-problem {
+            background: var(--off-white);
+            border-radius: var(--radius-lg);
+            padding: 40px;
+            border-left: 5px solid var(--coral);
+            position: relative;
+        }
+
+        .exec-problem-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--coral);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 18px;
+        }
+
+        .exec-problem p {
+            font-size: 0.95rem;
+            line-height: 1.75;
+            color: var(--text-secondary);
+        }
+
+        .exec-solution {
+            padding-top: 8px;
+        }
+
+        .exec-solution p {
+            font-size: 1.05rem;
+            line-height: 1.85;
+            color: var(--text-secondary);
+        }
+
+        /* ===== QUOTE ===== */
+        .quote-section {
+            padding: 80px 0;
+            background: var(--off-white);
+        }
+
+        .quote-card {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 48px 56px;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quote-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 6px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--teal), var(--teal-dark));
+            border-radius: 6px 0 0 6px;
+        }
+
+        .quote-card::after {
+            content: '"';
+            position: absolute;
+            top: 16px;
+            right: 32px;
+            font-size: 6rem;
+            font-weight: 900;
+            color: var(--off-white);
+            line-height: 1;
+            pointer-events: none;
+        }
+
+        .quote-text {
+            font-size: 1.15rem;
+            font-style: italic;
+            line-height: 1.75;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .quote-author {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--teal-dark);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== SITUATION ===== */
+        .situation {
+            padding: 110px 0;
+            background: var(--white);
+        }
+
+        .situation-content {
+            max-width: 800px;
+        }
+
+        .situation-content>p {
+            font-size: 1rem;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+
+        .situation-failures h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 36px 0 24px;
+            line-height: 1.6;
+        }
+
+        .failure-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .failure-item {
+            background: var(--off-white);
+            border-radius: var(--radius-md);
+            padding: 28px 32px;
+            position: relative;
+            border: 1px solid var(--border);
+            transition: all 0.4s ease;
+        }
+
+        .failure-item:hover {
+            transform: translateX(6px);
+            box-shadow: var(--shadow-soft);
+            border-color: var(--coral);
+        }
+
+        .failure-item strong {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        .failure-sub {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        /* ===== DIAGNOSIS ===== */
+        .diagnosis {
+            margin-top: 48px;
+            background: linear-gradient(135deg, #5B86C8 0%, #4AADB8 50%, #3ADDC8 100%);
+            border-radius: var(--radius-lg);
+            padding: 40px 44px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .diagnosis::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+        .diagnosis-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--coral-light);
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .diagnosis p {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.95rem;
+            line-height: 1.75;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== SOLUTION ===== */
+        .solution {
+            padding: 110px 0;
+            background: var(--off-white);
+        }
+
+        .solution-intro {
+            max-width: 800px;
+            margin-bottom: 56px;
+        }
+
+        .solution-intro p {
+            font-size: 1rem;
+            line-height: 1.8;
+        }
+
+        .solution-pillars {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+        }
+
+        .pillar-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 40px 32px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid var(--border);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pillar-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .pillar-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .pillar-card:nth-child(1)::before {
+            background: linear-gradient(90deg, var(--deep-blue), #2D2B6B);
+        }
+
+        .pillar-card:nth-child(2)::before {
+            background: linear-gradient(90deg, var(--coral), var(--coral-light));
+        }
+
+        .pillar-card:nth-child(3)::before {
+            background: linear-gradient(90deg, var(--teal-dark), var(--teal));
+        }
+
+        .pillar-number {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .pillar-card:nth-child(1) .pillar-number {
+            color: var(--deep-blue);
+            opacity: 0.2;
+        }
+
+        .pillar-card:nth-child(2) .pillar-number {
+            color: var(--coral);
+            opacity: 0.2;
+        }
+
+        .pillar-card:nth-child(3) .pillar-number {
+            color: var(--teal);
+            opacity: 0.2;
+        }
+
+        .pillar-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            line-height: 1.3;
+        }
+
+        .pillar-desc {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        /* ===== RESULTS ===== */
+        .results {
+            padding: 110px 0;
+            background: var(--white);
+        }
+
+        .results-intro {
+            max-width: 800px;
+            margin-bottom: 48px;
+        }
+
+        .results-intro p {
+            font-size: 1rem;
+            line-height: 1.8;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .result-card {
+            background: var(--off-white);
+            border-radius: var(--radius-lg);
+            padding: 36px;
+            border: 1px solid var(--border);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .result-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-card);
+            background: var(--white);
+            border-color: var(--teal);
+        }
+
+        .result-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .result-card:nth-child(1) .result-icon {
+            background: rgba(25, 22, 84, 0.08);
+            color: var(--deep-blue);
+        }
+
+        .result-card:nth-child(2) .result-icon {
+            background: rgba(242, 127, 82, 0.1);
+            color: var(--coral);
+        }
+
+        .result-card:nth-child(3) .result-icon {
+            background: rgba(117, 128, 210, 0.1);
+            color: var(--teal-dark);
+        }
+
+        .result-card:nth-child(4) .result-icon {
+            background: rgba(25, 22, 84, 0.08);
+            color: var(--deep-blue);
+        }
+
+        .result-card h4 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .result-card p {
+            font-size: 0.88rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        /* ===== WHAT MAKES DIFFERENT ===== */
+        .different {
+            padding: 110px 0;
+            background: var(--off-white);
+        }
+
+        .different-intro {
+            max-width: 800px;
+            margin-bottom: 48px;
+        }
+
+        .different-intro p {
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+
+        .diff-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .diff-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 36px;
+            border: 1px solid var(--border);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .diff-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--teal), var(--teal-dark));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .diff-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-card);
+        }
+
+        .diff-card:hover::before {
+            opacity: 1;
+        }
+
+        .diff-card h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--teal-dark);
+            margin-bottom: 14px;
+        }
+
+        .diff-card p {
+            font-size: 0.88rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        /* ===== CAPABILITIES ===== */
+        .capabilities {
+            padding: 110px 0;
+            background: var(--black);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .capabilities::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+
+        /* floating circles in dark section */
+        .cap-circle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .cap-circle-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(242, 127, 82, 0.08) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+        }
+
+        .cap-circle-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(117, 128, 210, 0.06) 0%, transparent 70%);
+            bottom: -80px;
+            left: -80px;
+        }
+
+        .capabilities .section-label {
+            color: var(--coral-light);
+        }
+
+        .capabilities .section-label::before {
+            background: var(--coral-light);
+        }
+
+        .capabilities .section-title {
+            color: var(--white);
+        }
+
+        .cap-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .cap-item {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 20px;
+            align-items: start;
+            padding: 28px 32px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-md);
+            transition: all 0.4s ease;
+        }
+
+        .cap-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(242, 127, 82, 0.25);
+            transform: translateY(-3px);
+        }
+
+        .cap-item h4 {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--coral-light);
+            line-height: 1.35;
+        }
+
+        .cap-item p {
+            font-size: 0.84rem;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        /* ===== CTA BANNER ===== */
+        .cta-banner {
+            padding: 100px 0;
+            background: linear-gradient(135deg, #5B86C8 0%, #4AADB8 40%, #3ADDC8 100%);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+
+        .cta-circle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .cta-circle-1 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(242, 127, 82, 0.12) 0%, transparent 70%);
+            top: -100px;
+            left: -80px;
+        }
+
+        .cta-circle-2 {
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(67, 198, 172, 0.1) 0%, transparent 70%);
+            bottom: -80px;
+            right: -60px;
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 2;
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        .cta-content h2 {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 800;
+            color: var(--white);
+            line-height: 1.3;
+            margin-bottom: 18px;
+        }
+
+        .cta-content h2 span {
+            color: var(--coral-light);
+        }
+
+        .cta-content p {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 36px;
+            line-height: 1.7;
+        }
+
+        .cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--coral);
+            color: var(--white);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 700;
+            padding: 16px 40px;
+            border-radius: var(--radius-pill);
+            transition: all 0.4s ease;
+            box-shadow: var(--shadow-coral);
+        }
+
+        .cta-btn:hover {
+            background: var(--coral-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 32px rgba(242, 127, 82, 0.5);
+        }
+
+        .cta-btn svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.3s ease;
+        }
+
+        .cta-btn:hover svg {
+            transform: translateX(4px);
+        }
+
+        .cta-url {
+            margin-top: 20px;
+        }
+
+        .cta-url a {
+            color: rgba(255, 255, 255, 0.4);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .cta-url a:hover {
+            color: var(--teal);
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            padding: 36px 0;
+            background: var(--black);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .footer-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .footer-logo-img {
+            height: 28px;
+            width: auto;
+            filter: brightness(0) invert(1);
+        }
+
+        .footer p {
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .solution-pillars {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .cap-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .diff-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .exec-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stat-item:nth-child(2)::after {
+                display: none;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .cap-item {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .hero-content {
+                padding: 110px 0 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-item:not(:last-child)::after {
+                display: none;
+            }
+
+            .quote-card {
+                padding: 32px 28px;
+            }
+
+            .container {
+                padding: 0 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="nav" id="navbar">
+        <div class="container">
+            <div class="nav-inner">
+                <a href="https://www.inovar-tech.com" class="nav-brand">
+                    <img src="public/InovarTech logo.svg" alt="InovarTech" class="nav-logo-img">
+                </a>
+                <ul class="nav-links">
+                    <li><a href="https://www.inovar-tech.com" class="nav-cta">Contact Us</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero" id="hero">
+        <div class="hero-circle hero-circle-1"></div>
+        <div class="hero-circle hero-circle-2"></div>
+        <div class="hero-circle hero-circle-3"></div>
+
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span class="hero-badge-tag">
+                        <span class="hero-badge-dot"></span>
+                        City of Seattle, WA · Government Client
+                    </span>
+                </div>
+
+                <h1>NavApp:<br>Real-Time Command of Seattle's <span class="accent">Encampment Crisis</span></h1>
+
+                <p class="hero-sub">A purpose-built mobile platform giving Seattle's operational teams real-time
+                    geo-fenced mapping, structured encampment workflows, and an integrated analytics layer.</p>
+
+                <div class="hero-tags">
+                    <span class="hero-tag">Geo-Fencing</span>
+                    <span class="hero-tag">Encampment Management</span>
+                    <span class="hero-tag">Workflow Automation</span>
+                    <span class="hero-tag">Real-Time Analytics</span>
+                    <span class="hero-tag">Government Technology</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS BAR -->
+    <section class="stats-bar">
+        <div class="container">
+            <div class="stats-grid reveal">
+                <div class="stat-item">
+                    <div class="stat-number">2,800+</div>
+                    <div class="stat-label">Encampments Tracked</div>
+                    <div class="stat-meta">Annually, City-wide</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">35%</div>
+                    <div class="stat-label">Faster Resolution</div>
+                    <div class="stat-meta">vs. prior workflow</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">Real-Time</div>
+                    <div class="stat-label">Field Visibility</div>
+                    <div class="stat-meta">Live geo-fenced mapping</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">1 Platform</div>
+                    <div class="stat-label">Unified Operations</div>
+                    <div class="stat-meta">Outreach + data + reporting</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- EXECUTIVE SUMMARY -->
+    <section class="exec-summary" id="summary">
+        <div class="container">
+            <div class="section-label reveal">Executive Summary</div>
+            <div class="section-title reveal">The Challenge &amp; Response</div>
+
+            <div class="exec-grid">
+                <div class="exec-problem reveal reveal-delay-1">
+                    <div class="exec-problem-title">The Problem in Numbers</div>
+                    <p>In 2023, the City of Seattle executed over 2,800 encampment removals — nearly 8 per day —
+                        affecting more than 4,100 people, while 9,800 individuals remained unsheltered on any given
+                        night. The Unified Care Team operated with a $26.6M annual budget and no integrated platform to
+                        track encampment locations, manage field workflows, and report program outcomes in real time.
+                        Decisions that should take minutes were taking days. Accountability to elected officials and the
+                        public was constrained by data the City couldn't reliably produce.</p>
+                </div>
+
+                <div class="exec-solution reveal reveal-delay-2">
+                    <p>InovarTech developed and deployed NavApp — a purpose-built mobile platform giving Seattle's
+                        operational teams real-time geo-fenced mapping, structured encampment workflows, and an
+                        integrated analytics layer. For the first time, department heads, field supervisors, and the
+                        Mayor's office shared a single, live view of encampment status across the city.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- QUOTE -->
+    <section class="quote-section">
+        <div class="container">
+            <div class="quote-card reveal">
+                <p class="quote-text">"For the first time, we have a live view of what's happening across the city.
+                    NavApp didn't just improve our data — it changed how we make decisions in the field and how we
+                    report outcomes to the Mayor's office."</p>
+                <p class="quote-author">— Director, Seattle Unified Care Team</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- THE SITUATION -->
+    <section class="situation" id="situation">
+        <div class="container">
+            <div class="section-label reveal">The Situation</div>
+            <div class="section-title reveal">Eight encampment removals a day</div>
+            <div class="section-subtitle reveal">with no real-time operational platform</div>
+
+            <div class="situation-content">
+                <p class="reveal">Seattle's homelessness challenge is among the most acute of any U.S. city. With an
+                    estimated 16,385 people experiencing homelessness in King County — a 23% increase since 2022 — and
+                    over 9,800 sleeping unsheltered, the scale of the operational challenge dwarfs most peer cities. The
+                    Unified Care Team, the city's cross-departmental body for encampment management, was executing
+                    removals at a rate that tripled between 2022 and 2023.</p>
+
+                <div class="situation-failures reveal">
+                    <h3>But the city's data infrastructure had not kept pace with its operational tempo. Three specific
+                        failures defined the environment NavApp was built to solve:</h3>
+
+                    <ul class="failure-list">
+                        <li class="failure-item reveal reveal-delay-1">
+                            <strong>Data fragmentation.</strong> No single source of truth on encampment locations.
+                            <span class="failure-sub">Field staff used disconnected spreadsheets and paper-based
+                                records. Public records requests revealed duplication rates as high as 10% between the
+                                city's own tracking logs — a sign of manual, inconsistent data entry across
+                                departments.</span>
+                        </li>
+                        <li class="failure-item reveal reveal-delay-2">
+                            <strong>Manual coordination overhead.</strong> Encampment removal workflows lacked
+                            structure, automation, or escalation logic.
+                            <span class="failure-sub">Field supervisors, program managers, and elected officials could
+                                not access real-time status updates. Reports were compiled manually after the fact — not
+                                actionable for same-day decisions.</span>
+                        </li>
+                        <li class="failure-item reveal reveal-delay-3">
+                            <strong>No outcome visibility.</strong> The $26.6M annual UCT budget produced no unified
+                            analytics on program effectiveness.
+                            <span class="failure-sub">Without integrated reporting, the City could not reliably answer
+                                basic accountability questions: Which neighborhoods had the highest encampment
+                                recurrence? Which sites had been resolved vs. returned? Where were shelter connections
+                                actually happening?</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="diagnosis reveal">
+                    <div class="diagnosis-title">Strategic Diagnosis</div>
+                    <p>The operational failure wasn't capacity — Seattle was executing at a high operational tempo. The
+                        failure was information architecture: the City lacked the real-time field visibility, structured
+                        workflows, and integrated analytics to deploy that capacity effectively.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- THE SOLUTION -->
+    <section class="solution" id="solution">
+        <div class="container">
+            <div class="section-label reveal">The NavApp Solution</div>
+            <div class="section-title reveal">A purpose-built platform for government encampment operations</div>
+
+            <div class="solution-intro reveal">
+                <p>InovarTech designed NavApp from the ground up for the specific operational requirements of a
+                    municipal encampment management program — not adapted from a nonprofit case management tool or a
+                    general-purpose GIS application. The platform delivered three integrated capabilities:</p>
+            </div>
+
+            <div class="solution-pillars">
+                <div class="pillar-card reveal reveal-delay-1">
+                    <div class="pillar-number">01</div>
+                    <div class="pillar-name">Geo-Fenced Encampment Mapping</div>
+                    <div class="pillar-desc">NavApp established precise, real-time geographic boundaries for every
+                        active encampment across Seattle. Unlike static maps or periodic survey snapshots, boundaries
+                        update as conditions change on the ground — giving the Unified Care Team an accurate operational
+                        picture at all times. Field workers can create, modify, or close encampment zones from a mobile
+                        device without returning to a desktop.</div>
+                </div>
+
+                <div class="pillar-card reveal reveal-delay-2">
+                    <div class="pillar-number">02</div>
+                    <div class="pillar-name">End-to-End Workflow Automation</div>
+                    <div class="pillar-desc">Every encampment lifecycle stage — identification, inspection,
+                        prioritization, outreach engagement, service connection, and resolution — is tracked within a
+                        structured workflow. Automated escalation rules flag high-hazard sites for priority action.
+                        Removal records auto-populate from field data, eliminating the manual spreadsheet reconciliation
+                        that had previously produced duplication rates as high as 10% in the City's own records.</div>
+                </div>
+
+                <div class="pillar-card reveal reveal-delay-3">
+                    <div class="pillar-number">03</div>
+                    <div class="pillar-name">Real-Time Analytics &amp; BI Layer</div>
+                    <div class="pillar-desc">NavApp's integrated data architecture — from field collection through data
+                        warehouse and data lake to live BI dashboards — gives department heads and elected officials a
+                        single, reliable view of encampment trends, resource deployment, and program outcomes. Machine
+                        learning models surface patterns across neighborhoods and time periods, enabling proactive
+                        resource allocation rather than reactive response.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="results" id="results">
+        <div class="container">
+            <div class="section-label reveal">Results</div>
+            <div class="section-title reveal">Operational intelligence in the field</div>
+            <div class="section-subtitle reveal">accountability data in the boardroom</div>
+
+            <div class="results-intro reveal">
+                <p>NavApp's deployment transformed the City's encampment operations across four dimensions:</p>
+            </div>
+
+            <div class="results-grid">
+                <div class="result-card reveal reveal-delay-1">
+                    <div class="result-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M2 12h20" />
+                            <path
+                                d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                    </div>
+                    <h4>Unified operational picture</h4>
+                    <p>Encampment tracking consolidated onto a single geo-fenced platform, eliminating the
+                        multi-spreadsheet data reconciliation that had produced duplicate records. Field staff now enter
+                        data once, from mobile, and it propagates through the entire reporting chain.</p>
+                </div>
+
+                <div class="result-card reveal reveal-delay-2">
+                    <div class="result-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                        </svg>
+                    </div>
+                    <h4>Faster resolution cycle</h4>
+                    <p>Structured workflow automation reduced the time from encampment identification to first outreach
+                        contact by 35% by ensuring that escalation rules, notification triggers, and assignment
+                        workflows execute automatically — not through manual follow-up.</p>
+                </div>
+
+                <div class="result-card reveal reveal-delay-3">
+                    <div class="result-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                    </div>
+                    <h4>Real-time executive visibility</h4>
+                    <p>Department heads and the Mayor's office access live dashboards showing encampment status by
+                        neighborhood, resolution rates, outreach contacts made, and shelter connections achieved — in
+                        real time, not in quarterly reports.</p>
+                </div>
+
+                <div class="result-card reveal reveal-delay-4">
+                    <div class="result-icon">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                        </svg>
+                    </div>
+                    <h4>Program accountability</h4>
+                    <p>NavApp's analytics layer generates the data the City needs to answer public accountability
+                        questions: encampment recurrence rates, service uptake percentages, program cost-per-resolution.
+                        The $26.6M UCT budget now has a reporting infrastructure commensurate with its scale.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- WHAT MAKES DIFFERENT -->
+    <section class="different" id="different">
+        <div class="container">
+            <div class="section-label reveal">What Makes NavApp Different</div>
+            <div class="section-title reveal">Built for government operations, not adapted from it</div>
+
+            <div class="different-intro reveal">
+                <p>The market for homelessness technology is dominated by platforms designed for nonprofit service
+                    providers managing individual client records under federal HMIS requirements. NavApp operates from a
+                    fundamentally different design premise: the client is a city government, the primary unit of
+                    analysis is the encampment — not the individual case — and the accountability audience is elected
+                    officials and the public, not HUD program officers.</p>
+            </div>
+
+            <div class="diff-grid">
+                <div class="diff-card reveal reveal-delay-1">
+                    <h4>Government-First Architecture</h4>
+                    <p>Enterprise HMIS platforms are built for nonprofits and Continuums of Care navigating federal
+                        compliance. NavApp is built for municipal government operations — encampment management at
+                        scale, multi-department coordination, and public accountability dashboards. The architecture
+                        reflects who uses it.</p>
+                </div>
+
+                <div class="diff-card reveal reveal-delay-2">
+                    <h4>Operations + Analytics in One Stack</h4>
+                    <p>Existing solutions require separate tools for field operations, case management, and analytics —
+                        often stitched together through manual exports. NavApp delivers field data capture, workflow
+                        management, and live BI dashboards through a single integrated platform, eliminating
+                        reconciliation overhead.</p>
+                </div>
+
+                <div class="diff-card reveal reveal-delay-3">
+                    <h4>Encampment as Primary Use Case</h4>
+                    <p>Most market solutions treat encampment tracking as a module within a broader case management
+                        platform — an add-on to a system designed primarily for shelter intake and housing placement.
+                        For NavApp, the encampment is the primary unit of analysis: its boundaries, its population, its
+                        resolution status, and its program outcomes.</p>
+                </div>
+
+                <div class="diff-card reveal reveal-delay-4">
+                    <h4>Machine Learning as Standard Infrastructure</h4>
+                    <p>Predictive analytics — recurrence modeling, demand forecasting, anomaly detection — are embedded
+                        in NavApp's architecture, not available as a premium add-on. For a city executing 2,800+
+                        removals annually, the ability to anticipate where and when resources will be needed is
+                        operationally significant.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CAPABILITIES -->
+    <section class="capabilities" id="capabilities">
+        <div class="cap-circle cap-circle-1"></div>
+        <div class="cap-circle cap-circle-2"></div>
+        <div class="container">
+            <div class="section-label reveal">Capabilities Demonstrated</div>
+            <div class="section-title reveal" style="margin-bottom: 48px;">Full-Stack Government Technology</div>
+
+            <div class="cap-grid">
+                <div class="cap-item reveal reveal-delay-1">
+                    <h4>Geospatial Engineering</h4>
+                    <p>Geo-fencing, real-time encampment boundary mapping, location-based field data capture,
+                        neighborhood-level spatial analytics.</p>
+                </div>
+                <div class="cap-item reveal reveal-delay-2">
+                    <h4>Mobile-First Platform Design</h4>
+                    <p>Cross-device, field-ready interface enabling outreach workers to collect, update, and access data
+                        from any smartphone or tablet — no connectivity dependency.</p>
+                </div>
+                <div class="cap-item reveal reveal-delay-1">
+                    <h4>Data Pipeline Architecture</h4>
+                    <p>Full-stack integration: field data collection → OLTP/ERP/CRM → Data Warehouse + Data Lake →
+                        Catalog → BI and ML layers.</p>
+                </div>
+                <div class="cap-item reveal reveal-delay-2">
+                    <h4>Workflow Automation</h4>
+                    <p>Configurable encampment lifecycle workflows with rule-based escalation, automated record
+                        creation, and resolution tracking — replacing manual coordination and spreadsheet-based
+                        operations.</p>
+                </div>
+                <div class="cap-item reveal reveal-delay-1">
+                    <h4>Business Intelligence &amp; Reporting</h4>
+                    <p>Real-time dashboards and interactive reports purpose-built for government decision-makers — from
+                        field supervisors to mayoral offices.</p>
+                </div>
+                <div class="cap-item reveal reveal-delay-2">
+                    <h4>Machine Learning Integration</h4>
+                    <p>Pattern identification across encampment data: recurrence prediction, resource demand
+                        forecasting, and anomaly detection to support proactive program management.</p>
+                </div>
+                <div class="cap-item reveal reveal-delay-1">
+                    <h4>Rapid Government Deployment</h4>
+                    <p>Configured and deployed within a government procurement and compliance environment, operational
+                        within a single fiscal cycle.</p>
+                </div>
+                <div class="cap-item reveal reveal-delay-2">
+                    <h4>Government Domain Expertise</h4>
+                    <p>Deep understanding of public-sector constraints: interagency data sharing, privacy requirements,
+                        public records obligations, and political accountability for operational outcomes.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA BANNER -->
+    <section class="cta-banner">
+        <div class="cta-circle cta-circle-1"></div>
+        <div class="cta-circle cta-circle-2"></div>
+        <div class="container">
+            <div class="cta-content reveal">
+                <h2>Managing an encampment crisis with spreadsheets and static maps is <span>a losing strategy.</span>
+                </h2>
+                <p>NavApp gives city leaders real-time command over what is happening in the field — and the data to
+                    prove program effectiveness to the public.</p>
+                <a href="https://www.inovar-tech.com" class="cta-btn" target="_blank" rel="noopener">
+                    Contact InovarTech
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                    </svg>
+                </a>
+                <div class="cta-url">
+                    <a href="https://www.inovar-tech.com" target="_blank" rel="noopener">www.inovar-tech.com</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <img src="public/InovarTech logo.svg" alt="InovarTech" class="footer-logo-img">
+                <p>&copy; InovarTech. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // Scroll reveal
+        const revealElements = document.querySelectorAll('.reveal');
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+        revealElements.forEach(el => revealObserver.observe(el));
+
+        // Navbar scroll
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            navbar.classList.toggle('scrolled', window.scrollY > 80);
+        });
+
+        // Smooth scroll
+        document.querySelectorAll('.nav-links a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    window.scrollTo({
+                        top: target.getBoundingClientRect().top + window.scrollY - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
